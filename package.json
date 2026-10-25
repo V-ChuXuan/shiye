@@ -1,6 +1,6 @@
 {
   "name": "shiye",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "个人本地微信公众号归档与阅读应用",
@@ -21,6 +21,7 @@
     "start": "node dist/server/index.js",
     "desktop": "electron .",
     "desktop:package": "npm run build && node scripts/package-desktop.mjs",
+    "desktop:installer": "npm run desktop:package && node scripts/package-installer.mjs",
     "test:desktop": "node scripts/desktop-smoke.mjs",
     "test:reading-details": "node scripts/reader-details-smoke.mjs"
   },

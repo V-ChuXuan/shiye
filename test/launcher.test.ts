@@ -78,9 +78,10 @@ test('real cmd keeps a missing npm failure visible', { skip: !windows }, async t
   assert.match(result.stdout, /Press any key|按任意键/i);
 });
 
-test('real cmd prefers the packaged desktop without requiring Node or starting npm', { skip: !windows }, async t => {
+for (const versioned of [false, true]) test(`real cmd prefers the ${versioned ? 'current versioned' : 'legacy'} desktop without requiring Node or starting npm`, { skip: !windows }, async t => {
   const f = await fixture(t, { node: false, dependencies: false, built: false });
-  const directory = join(f.root, 'release/拾页-win32-x64'); await mkdir(directory, { recursive: true });
+  const directory = join(f.root, versioned ? 'release/0.1.2/拾页-win32-x64' : 'release/拾页-win32-x64'); await mkdir(directory, { recursive: true });
+  if (versioned) await writeFile(join(f.root, 'release/启动拾页.cmd'), batch('@echo off\nchcp 65001 >nul\nstart "" "%~dp00.1.2\\拾页-win32-x64\\拾页.exe"\nexit /b %errorlevel%\n'));
   const compiler = join(process.env.SystemRoot || 'C:\\Windows', 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
   const source = join(f.root, 'probe.cs'), marker = join(f.root, 'desktop.txt');
   await writeFile(source, 'using System; using System.IO; class Probe { static void Main(string[] args) { File.WriteAllText(Environment.GetEnvironmentVariable("LAUNCHER_DESKTOP_PROBE"), Environment.CurrentDirectory + "\\n" + args.Length); } }');
@@ -90,5 +91,15 @@ test('real cmd prefers the packaged desktop without requiring Node or starting n
   assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stdout + result.stderr);
   for (let attempt = 0; attempt < 50 && !existsSync(marker); attempt++) await new Promise(done => setTimeout(done, 100));
   assert.equal(await readFile(marker, 'utf8'), `${f.root}\n0`);
+  assert.deepEqual(await f.calls(), []);
+});
+
+test('real cmd keeps a failed current desktop pointer visible instead of opening an older library', { skip: !windows }, async t => {
+  const f = await fixture(t, { node: false });
+  await mkdir(join(f.root, 'release'));
+  await writeFile(join(f.root, 'release/启动拾页.cmd'), batch('@echo off\nexit /b 7\n'));
+  const result = f.run();
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stdout, /启动失败/);
   assert.deepEqual(await f.calls(), []);
 });

@@ -39,7 +39,7 @@ npm ci
 npm run desktop:package
 ```
 
-程序生成在 `release/拾页-win32-x64/拾页.exe`。桌面开发运行 `npm run desktop`，需要先构建并通过打包准备随包 Node，详情见[桌面开发](desktop.md)。
+程序生成在 `release/<version>/拾页-win32-x64/拾页.exe`。桌面开发运行 `npm run desktop`，详情见[桌面开发](desktop.md)。
 
 源码浏览器开发时，在两个终端分别运行 `npm run dev` 和 `npm run dev:client`。也可在构建后运行生产服务：
 
@@ -48,7 +48,7 @@ npm run build
 npm start
 ```
 
-打开 `http://127.0.0.1:4387`。Windows 双击 `启动拾页.bat` 时，优先打开已有的 `release/拾页-win32-x64/拾页.exe`；没有桌面程序时才启动源码浏览器模式，并按需安装依赖、构建缺失产物。启动失败会保留提示，按键后关闭窗口。
+打开 `http://127.0.0.1:4387`。Windows 双击 `启动拾页.bat` 时，优先通过 `release/启动拾页.cmd` 打开最近打包的桌面程序，兼容旧便携目录；没有桌面程序时才启动源码浏览器模式。启动失败会保留提示，按键后关闭窗口。
 
 | 变量 | 范围 | 默认值或用途 |
 |---|---|---|

@@ -3,6 +3,11 @@ setlocal
 chcp 65001 >nul
 cd /d "%~dp0"
 if errorlevel 1 goto failed
+if exist "release\启动拾页.cmd" (
+  call "release\启动拾页.cmd"
+  if errorlevel 1 goto failed
+  exit /b 0
+)
 if exist "release\拾页-win32-x64\拾页.exe" (
   start "" "%~dp0release\拾页-win32-x64\拾页.exe"
   if errorlevel 1 goto failed

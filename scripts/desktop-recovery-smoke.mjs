@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { _electron as electron } from 'playwright-core';
 import { Store } from '../dist/server/store.js';
@@ -93,18 +93,41 @@ try {
       await application.evaluate(() => globalThis.__recoveryProbe.answer(0));
       await until(async () => await application.evaluate(() => globalThis.__recoveryProbe.messages.length === 2));
       const guidance = await application.evaluate(() => globalThis.__recoveryProbe.messages[1]);
-      assert.deepEqual(guidance.buttons, ['打开文库目录', '重试', '退出']);
+      assert.deepEqual(guidance.buttons, ['恢复并打开', '打开文库目录', '退出']);
       assert.match(guidance.message, /没有正常退出/);
       assert.deepEqual(await readFile(lockPath), lock);
       assert.deepEqual(await readFile(join(library, 'data/archive.sqlite')), database);
-      checks.push('abrupt exit retains stale lock; explicit reopen reaches typed guidance without changing database or deleting lock');
+      await application.evaluate(() => globalThis.__recoveryProbe.answer(0));
+      await until(async () => {
+        try { return (await fetch(`${new URL(page.url()).origin}/api/health`)).ok; } catch { return false; }
+      });
+      await page.getByRole('heading', { name: '公众号', exact: true }).waitFor();
+      const archived = await readdir(join(library, 'data'));
+      let preserved = false;
+      for (const name of archived.filter(name => name.startsWith('.shiye-service.lock') && name !== '.shiye-service.lock')) {
+        if ((await readFile(join(library, 'data', name))).equals(lock)) preserved = true;
+      }
+      assert.ok(preserved, 'Explicit recovery preserves the original lock record.');
+      const origin = new URL(page.url()).origin;
+      assert.deepEqual(await (await fetch(`${origin}/api/reading-positions/${article.id}`)).json(), { body: 321, gallery: 0 });
+      assert.equal((await (await fetch(`${origin}/api/jobs`)).json()).find(item => item.id === job.id).status, 'paused');
+      assert.equal((await (await fetch(`${origin}/api/accounts`)).json())[0].connection, 'disconnected');
+      assert.equal(await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
+      checks.push('abrupt exit waits for explicit recovery; original lock is archived, same library and paused work reopen in one window');
+      await application.evaluate(() => {
+        const owned = process._getActiveHandles().find(handle => typeof handle.send === 'function' &&
+          handle.spawnargs?.some(arg => /[\\/]desktop[\\/]service\.mjs$/.test(arg)) && handle.exitCode === null);
+        if (!owned) throw new Error('Recovered sidecar missing.');
+        owned.send({ type: 'shutdown' });
+      });
+      await until(async () => await application.evaluate(() => globalThis.__recoveryProbe.messages.length === 3));
     }
     assert.deepEqual(await readFile(imagePath), image);
     assert.deepEqual(await application.evaluate(() => globalThis.__recoveryProbe.errors), []);
     const closed = application.waitForEvent('close');
-    await application.evaluate(response => { setTimeout(() => globalThis.__recoveryProbe.answer(response), 10); }, mode === 'stale' ? 2 : 1);
+    await application.evaluate(() => { setTimeout(() => globalThis.__recoveryProbe.answer(1), 10); });
     await closed; application = null;
-    if (mode === 'retry') assert.equal(existsSync(lockPath), false);
+    assert.equal(existsSync(lockPath), false);
     checks.push(`${mode}: native exit ends application without a maintenance deadlock`);
   }
   await writeFile(join(evidence, 'desktop-recovery-result.json'), JSON.stringify({ passed: true, checks, fixture, executable: packaged.executable }, null, 2));

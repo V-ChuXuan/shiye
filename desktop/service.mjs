@@ -23,7 +23,8 @@ process.on('message', message => { if (message?.type === 'shutdown') shutdown();
 process.on('disconnect', shutdown);
 const initialized = (async () => {
   const dataDir = resolve(process.env.SHIYE_LIBRARY_ROOT, 'data');
-  release = await acquireLibraryLock(dataDir);
+  const recoverClaim = process.argv?.find(value => value.startsWith('--recover-lock='))?.slice('--recover-lock='.length);
+  release = await acquireLibraryLock(dataDir, { recoverClaim });
   if (closing) return;
   app = await createApp({ dataDir, defaultImageDirectory: resolve(process.env.SHIYE_LIBRARY_ROOT, 'pictures'), staticDir: resolve('dist/client') });
   app.server.on('connection', socket => {
@@ -52,7 +53,7 @@ const initialized = (async () => {
 try { await initialized; }
 catch (error) {
   if (!closing) {
-    if (process.connected) process.send({ type: 'error', ...(error instanceof LibraryStartupError ? { code: error.code, message: error.message } : { message: '本地服务无法启动，请检查文库位置或程序文件是否完整' }) }, () => {});
+    if (process.connected) process.send({ type: 'error', ...(error instanceof LibraryStartupError ? { code: error.code, message: error.message, ...(error.recoveryClaim ? { recoveryClaim: error.recoveryClaim } : {}) } : { message: '本地服务无法启动，请检查文库位置或程序文件是否完整' }) }, () => {});
     process.exitCode = 1;
   }
   await close();

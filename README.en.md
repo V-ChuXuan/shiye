@@ -8,7 +8,7 @@
 <p align="center">Discover the list, choose what to download, and keep text and images in your local library.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.1-245c49?style=flat" alt="Version 0.1.1">
+  <img src="https://img.shields.io/badge/version-0.1.2-245c49?style=flat" alt="Version 0.1.2">
   <img src="https://img.shields.io/badge/platform-Windows_x64-245c49?style=flat" alt="Windows x64">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-245c49?style=flat" alt="MIT License"></a>
 </p>
@@ -28,7 +28,9 @@ The interface is currently in Chinese; control names below are translated into E
 
 ## Install
 
-Download the Windows x64 ZIP from [Releases](https://github.com/V-ChuXuan/shiye/releases/latest), extract the complete folder and open `拾页.exe`. Keep the adjacent files and folders; no separate Node.js installation is needed.
+Download the Windows x64 installer from [Releases](https://github.com/V-ChuXuan/shiye/releases/latest) and follow the setup wizard. A ZIP is also available: extract the complete folder and open `拾页.exe`. No separate Node.js installation is needed.
+
+New libraries use the `library` folder beside the application, with images in `library/pictures`. Upgrades and uninstall preserve the library. Existing users keep their original location.
 
 ## Quick Start
 
@@ -57,7 +59,7 @@ If WeChat requests verification or the connection expires, handle it in WeChat, 
 ## Limitations
 
 - Collection depends on Windows desktop WeChat and its non-public listing interface. Complete history and unattended operation are not guaranteed.
-- This is an unsigned Windows x64 portable application, without an installer or automatic updates.
+- Windows x64 only. The application is unsigned and does not support automatic updates.
 - Saved articles and images retain their authors' rights; MIT applies to the software. See [further limitations (Chinese)](docs/usage.md#已知限制).
 
 ## Development

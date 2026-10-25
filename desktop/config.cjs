@@ -6,6 +6,19 @@ function libraryPaths(root) {
   if (typeof root !== 'string' || !isAbsolute(root) || /[\0-\x1f]/.test(root)) throw new Error('文库路径必须是完整文件夹路径');
   return { root: resolve(root), data: join(resolve(root), 'data'), pictures: join(resolve(root), 'pictures') };
 }
+function checkLibraryWritable(root) {
+  const directory = libraryPaths(root).root;
+  fs.mkdirSync(directory, { recursive: true });
+  const probe = join(directory, `.shiye-write-${randomUUID()}`);
+  let descriptor, created = false;
+  try {
+    descriptor = fs.openSync(probe, 'wx'); created = true;
+    fs.writeFileSync(descriptor, 'probe'); fs.fsyncSync(descriptor);
+  } finally {
+    if (descriptor !== undefined) fs.closeSync(descriptor);
+    if (created) fs.unlinkSync(probe);
+  }
+}
 function existingLibrary(root) {
   try {
     const paths = libraryPaths(root), database = join(paths.data, 'archive.sqlite');
@@ -79,4 +92,4 @@ function externalLink(input) {
 function mainPage(input, origin) {
   try { const url = new URL(input); return url.origin === origin && input === `${origin}/${url.hash}`; } catch { return false; }
 }
-module.exports = { libraryPaths, existingLibrary, readLibraryRoot, saveLibraryRoot, readWindowState, saveWindowState, argument, externalLink, mainPage };
+module.exports = { libraryPaths, checkLibraryWritable, existingLibrary, readLibraryRoot, saveLibraryRoot, readWindowState, saveWindowState, argument, externalLink, mainPage };

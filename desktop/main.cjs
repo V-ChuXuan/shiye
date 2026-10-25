@@ -2,8 +2,8 @@ const { app, BrowserWindow, Menu, Tray, dialog, nativeImage, session, shell, scr
 const { fork } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
 const { existsSync, lstatSync } = require('node:fs');
-const { isAbsolute, join, resolve } = require('node:path');
-const { argument, libraryPaths, existingLibrary, readLibraryRoot, saveLibraryRoot, readWindowState, saveWindowState, externalLink, mainPage } = require('./config.cjs');
+const { isAbsolute, join, resolve, dirname } = require('node:path');
+const { argument, libraryPaths, checkLibraryWritable, existingLibrary, readLibraryRoot, saveLibraryRoot, readWindowState, saveWindowState, externalLink, mainPage } = require('./config.cjs');
 
 const userData = argument(process.argv, 'user-data-dir');
 if (userData) app.setPath('userData', resolve(userData));
@@ -270,29 +270,34 @@ function secure(contents) {
 }
 async function service(backend, node) {
   const guidance = {
-    library_lock_stale: ['上次拾页没有正常退出', '请确认所有拾页程序和采集服务均已退出，再打开下方目录，只删除 .shiye-service.lock 文件，然后点击“重试”。不要删除数据库或图片。'],
+    library_lock_stale: ['上次拾页没有正常退出', '原文库和图片已保留。恢复前会再次确认文库没有被其他进程使用，任务不会自动继续。'],
     library_in_use: ['这份文库正在使用中', '请先退出正在使用这份文库的另一个拾页程序或采集服务，再点击“重试”。不要删除锁文件。'],
     library_lock_unknown: ['无法确认文库是否空闲', '锁文件无法识别或读取。请先退出其他拾页程序，保留锁文件、数据库和图片；确认文库未被使用后再重试。'],
     library_incomplete: ['这份文库尚未恢复完成', '请从完整备份重新恢复到新的文库。不要删除 .shiye-incomplete 标记，也不要直接打开其中的数据库。'],
   };
+  let recoveryClaim;
   for (;;) {
-    try { return await startService(backend, node); }
+    try {
+      const claim = recoveryClaim; recoveryClaim = undefined;
+      return await startService(backend, node, claim);
+    }
     catch (error) {
       if (!Object.hasOwn(guidance, error?.code)) throw error;
       await stopService();
       const [message, detail] = guidance[error.code];
       const directory = error.code === 'library_incomplete' ? paths.root : paths.data;
+      const recoverable = error.code === 'library_lock_stale' && typeof error.recoveryClaim === 'string' && error.recoveryClaim.length > 0 && error.recoveryClaim.length <= 1024;
       for (;;) {
-        const options = { type: 'warning', title: '打开文库', message, detail: `${detail}\n\n${directory}`, buttons: ['打开文库目录', '重试', '退出'], defaultId: 1, cancelId: 2 };
+        const options = { type: 'warning', title: '打开文库', message, detail: `${detail}\n\n${directory}`, buttons: recoverable ? ['恢复并打开', '打开文库目录', '退出'] : ['打开文库目录', '重试', '退出'], defaultId: recoverable ? 0 : 1, cancelId: 2 };
         const answer = await (window ? dialog.showMessageBox(window, options) : dialog.showMessageBox(options));
-        if (answer.response === 1) break;
-        if (answer.response === 0) openFolder(directory);
+        if (answer.response === (recoverable ? 0 : 1)) { recoveryClaim = recoverable ? error.recoveryClaim : undefined; break; }
+        if (answer.response === (recoverable ? 1 : 0)) openFolder(directory);
         else throw Object.assign(new Error('文库尚未打开'), { reported: true });
       }
     }
   }
 }
-async function startService(backend, node) {
+async function startService(backend, node, recoveryClaim) {
   try {
     const response = await fetch('http://127.0.0.1:4387/api/health', { signal: AbortSignal.timeout(1200) });
     if (response.ok && response.headers.get('X-Wechat-Archive') === '1') {
@@ -302,7 +307,7 @@ async function startService(backend, node) {
   } catch { /* An absent or unrelated service is not owned by this application. */ }
   if (!existsSync(node) || !existsSync(join(backend, 'dist/server/app.js'))) throw new Error('程序运行文件缺失，请重新解压完整应用文件夹');
   return new Promise((done, reject) => {
-    const owned = child = fork(join(backend, 'desktop/service.mjs'), [], { execPath: node, cwd: backend, env: { ...process.env, SHIYE_LIBRARY_ROOT: paths.root }, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
+    const owned = child = fork(join(backend, 'desktop/service.mjs'), recoveryClaim ? [`--recover-lock=${recoveryClaim}`] : [], { execPath: node, cwd: backend, env: { ...process.env, SHIYE_LIBRARY_ROOT: paths.root }, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
     let ready = false, settled = false;
     owned.stderr.on('data', () => {});
     const fail = async error => {
@@ -323,7 +328,8 @@ async function startService(backend, node) {
         if (quitting) { void fail(new Error('拾页正在退出')); return; }
         settled = true; ready = true; clearTimeout(timer); done(`http://127.0.0.1:${message.port}`);
       }
-      if (message?.type === 'error') void fail(Object.assign(new Error(message.message), { code: message.code }));
+      if (message?.type === 'error') void fail(Object.assign(new Error(message.message), { code: message.code,
+        ...(message.code === 'library_lock_stale' && typeof message.recoveryClaim === 'string' && message.recoveryClaim.length <= 1024 ? { recoveryClaim: message.recoveryClaim } : {}) }));
     });
   });
 }
@@ -348,7 +354,21 @@ else {
         remembered = existingLibrary(folder.filePaths[0]);
       }
     }
-    paths = libraryPaths(explicit || remembered || (app.isPackaged ? join(app.getPath('userData'), 'library') : resolve(__dirname, '..')));
+    let root = explicit || remembered;
+    if (!root) {
+      root = app.isPackaged ? join(dirname(process.execPath), 'library') : resolve(__dirname, '..');
+      if (app.isPackaged) for (;;) {
+        try { checkLibraryWritable(root); break; }
+        catch {
+          const answer = await dialog.showMessageBox({ type: 'warning', title: '保存文库', message: '无法在此位置保存文库', detail: `${root}\n请选择可写的文件夹，文库将保存在其中的 library 目录。`, buttons: ['选择文件夹', '退出'], defaultId: 0, cancelId: 1 });
+          if (answer.response !== 0) throw Object.assign(new Error('未选择文库位置'), { reported: true });
+          const folder = await dialog.showOpenDialog({ title: '选择文库存放位置', properties: ['openDirectory', 'createDirectory'] });
+          if (folder.canceled || !folder.filePaths[0]) throw Object.assign(new Error('未选择文库位置'), { reported: true });
+          root = join(folder.filePaths[0], 'library');
+        }
+      }
+    }
+    paths = libraryPaths(root);
     backend = app.isPackaged ? join(process.resourcesPath, 'backend') : resolve(__dirname, '..');
     node = app.isPackaged ? join(process.resourcesPath, 'runtime/node.exe') : join(backend, 'data/desktop-verification/runtime/node.exe');
     origin = await service(backend, node);

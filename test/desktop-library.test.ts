@@ -19,7 +19,8 @@ function desktop(owned = true) {
   const requests: { type: string; source: string; target: string }[] = [];
   const titles: string[] = [], progress: number[] = [];
   const messageProgress: { message: string; title?: string; progress?: number }[] = [];
-  const state = { activeJobs: 0, failNextStart: false, holdNextStart: false, startupFailures: [] as string[], holdRecovery: false, holdQuit: false, holdComplete: false, quitRequests: 0 };
+  const state = { activeJobs: 0, failNextStart: false, holdNextStart: false, startupFailures: [] as string[], startupClaims: [] as (string | undefined)[], holdRecovery: false, holdQuit: false, holdComplete: false, quitRequests: 0 };
+  const forkArgs: string[][] = [];
   const recoveryAnswers: ((answer: { response: number }) => void)[] = [];
   const quitAnswers: ((answer: { response: number }) => void)[] = [], completeAnswers: ((answer: { response: number }) => void)[] = [];
   const startupTimers: { timer: ReturnType<typeof setTimeout>; callback: () => void }[] = [];
@@ -53,12 +54,13 @@ function desktop(owned = true) {
   const context = vm.createContext({
     require: (name: string) => {
       if (name === 'electron') return fakeElectron;
-      if (name === 'node:child_process') return { fork: (file: string, _args: unknown, options: { env: { SHIYE_LIBRARY_ROOT?: string } }) => {
+      if (name === 'node:child_process') return { fork: (file: string, args: string[], options: { env: { SHIYE_LIBRARY_ROOT?: string } }) => {
+        forkArgs.push(Array.from(args));
         const child = new Child(options.env.SHIYE_LIBRARY_ROOT || '', file.endsWith('library.mjs')); children.push(child);
         if (!child.tool) queueMicrotask(() => {
           if (state.holdNextStart) { state.holdNextStart = false; return; }
           const failure = state.startupFailures.shift();
-          if (failure) child.emit('message', { type: 'error', code: failure, message: 'startup fixture' });
+          if (failure) child.emit('message', { type: 'error', code: failure, message: 'startup fixture', recoveryClaim: state.startupClaims.shift() });
           else if (state.failNextStart) { state.failNextStart = false; child.exit(1); }
           else child.emit('message', { type: 'ready', port: 12345 });
         });
@@ -83,7 +85,7 @@ function desktop(owned = true) {
   const finish = (code = 0) => { tool().emit('message', { type: 'result', result: { directory: requests[0].target, images: 2, articles: 1 } }); tool().exit(code); };
   const timeout = () => { const held = startupTimers.at(-1)!; clearTimeout(held.timer); held.callback(); };
   const answerRecovery = (response: number) => { assert.ok(recoveryAnswers.length); recoveryAnswers.shift()!({ response }); };
-  return { root, parent, messages, writes, loads, folders, opens, responses, requests, original, children, context, state, start, tool, finish, timeout, titles, progress, messageProgress, answerRecovery, recoveryAnswers, quitAnswers, completeAnswers };
+  return { root, parent, messages, writes, loads, folders, opens, responses, requests, original, children, context, state, start, tool, finish, timeout, titles, progress, messageProgress, answerRecovery, recoveryAnswers, quitAnswers, completeAnswers, forkArgs };
 }
 
 test('unexpected owned-service exit waits for one native choice, then reopens the same library', async () => {
@@ -235,17 +237,34 @@ test('startup failure cleanup never stops a newer service assigned to the global
   assert.equal(vm.runInContext('child === replacement', d.context), true);
 });
 
-test('desktop stale-lock guidance opens only its bound directory and retries a fresh service', async () => {
-  const d = desktop(false); d.state.startupFailures.push('library_lock_stale'); d.responses.push(0, 1);
+test('desktop stale-lock recovery opens only its bound directory and forwards an explicit exact claim once', async () => {
+  const claim = JSON.stringify({ pid: 1234, id: 'stale fixture' });
+  const d = desktop(false); d.state.startupFailures.push('library_lock_stale'); d.state.startupClaims.push(claim); d.responses.push(1, 0);
   const origin = await vm.runInContext('service(backend, node)', d.context);
   assert.equal(origin, 'http://127.0.0.1:12345');
   assert.deepEqual(d.folders, [resolve(d.root, 'data')]);
   assert.equal(d.children.length, 2);
   assert.equal(d.children[0].exitCode, 0, 'Retry waits for its failed sidecar to stop.');
-  assert.ok(d.messages.every(item => item.buttons?.join('|') === '打开文库目录|重试|退出'));
-  assert.match(d.messages[0].detail || '', /所有拾页程序.*退出/);
-  assert.match(d.messages[0].detail || '', /只删除.*\.shiye-service\.lock/);
+  assert.ok(d.messages.every(item => item.buttons?.join('|') === '恢复并打开|打开文库目录|退出'));
+  assert.match(d.messages[0].detail || '', /再次确认/);
+  assert.deepEqual(d.forkArgs, [[], [`--recover-lock=${claim}`]]);
+  assert.ok(d.messages.every(item => !/删除.*\.shiye-service\.lock/.test(item.detail || '')));
   assert.equal(d.writes.length, 0); assert.equal(d.loads.length, 0);
+});
+
+test('a changed recovery claim requires a new choice and never reuses the previous authorization', async () => {
+  const first = JSON.stringify({ pid: 1234, id: 'first' }), second = JSON.stringify({ pid: 1235, id: 'second' });
+  const d = desktop(false); d.state.startupFailures.push('library_lock_stale', 'library_lock_stale');
+  d.state.startupClaims.push(first, second); d.responses.push(0, 2);
+  await assert.rejects(vm.runInContext('service(backend, node)', d.context));
+  assert.deepEqual(d.forkArgs, [[], [`--recover-lock=${first}`]]);
+  assert.equal(d.messages.length, 2); assert.equal(d.loads.length, 0);
+  for (const claim of [undefined, '', 'x'.repeat(1025)]) {
+    const unknown = desktop(false); unknown.state.startupFailures.push('library_lock_stale'); unknown.state.startupClaims.push(claim); unknown.responses.push(2);
+    await assert.rejects(vm.runInContext('service(backend, node)', unknown.context));
+    assert.equal(unknown.messages[0].buttons?.join('|'), '打开文库目录|重试|退出');
+    assert.deepEqual(unknown.forkArgs, [[]]);
+  }
 });
 
 test('desktop typed lock guidance preserves live, unknown and incomplete libraries on exit', async () => {
@@ -254,7 +273,7 @@ test('desktop typed lock guidance preserves live, unknown and incomplete librari
     await assert.rejects(vm.runInContext('service(backend, node)', d.context), (error: unknown) => Boolean(error && (error as { reported?: boolean }).reported));
     assert.equal(d.children.length, 1); assert.equal(d.children[0].exitCode, 0);
     assert.equal(d.folders.length, 0); assert.equal(d.writes.length, 0); assert.equal(d.loads.length, 0);
-    assert.ok(!/只删除/.test(d.messages[0].detail || ''), 'Only a positively stale lock may receive manual lock-removal guidance.');
+    assert.ok(!/只删除/.test(d.messages[0].detail || ''), 'Startup guidance must not ask users to delete lock files.');
     if (code === 'library_incomplete') assert.match(d.messages[0].detail || '', /不要删除.*shiye-incomplete/);
   }
   const ordinary = desktop(false); ordinary.state.startupFailures.push('not_a_library_error');

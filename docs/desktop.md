@@ -6,12 +6,12 @@
 
 0.1.1增加当前界面的原生异常恢复；明确重载只恢复受控本地页面，后台服务及采集保持。无响应可继续等待，服务同时停止时沿既有服务恢复，不自动解锁。行为与验证见[阅读和桌面收尾契约](library-polish.md)。
 
-双击`release/拾页-win32-x64/拾页.exe`。整个文件夹是一份应用，包含Electron、后端、Node和SQLite原生模块，不要单独移动exe。第一版是Windows x64便携目录包，没有安装器、代码签名或自动更新。
+下载Windows x64安装程序，按中文向导安装；也可完整解压便携ZIP后打开`拾页.exe`。便携文件夹包含Electron、后端、Node和SQLite原生模块，不要单独移动exe。尚无代码签名或自动更新。
 
 ## Windows 启动入口
 
 - **触发与签名：**双击项目根目录的 `启动拾页.bat`，工作目录固定为脚本所在目录，支持中文和空格路径。
-- **行为：**已有 `release/拾页-win32-x64/拾页.exe` 时优先打开桌面程序，不安装源码依赖、不构建、不打开浏览器；未打包时明确提示并沿用源码浏览器启动流程。启动器不承担文库锁恢复、进程清理或自动采集。
+- **行为：**优先调用打包成功后生成的 `release/启动拾页.cmd`，指向 `release/<version>/拾页-win32-x64/拾页.exe`；兼容旧固定便携目录。桌面程序存在时不安装源码依赖、不构建、不打开浏览器；未打包时明确提示并沿用源码浏览器启动流程。启动器不承担文库锁恢复、进程清理或自动采集。
 - **格式与校验：**批处理为无 BOM 的 UTF-8，使用 CRLF，先执行 ASCII 代码页切换再处理中文。`.gitattributes` 仅为批处理固定检出 CRLF，不改变 PowerShell 脚本编码。缺少 Node 或安装、构建、启动命令失败时，保留失败提示并暂停，返回非零状态。
 - **用例与测试：**`test/launcher.test.ts` 在中文空格临时目录通过真实 `cmd.exe` 执行脚本，覆盖桌面优先、源码成功及失败分支；替身命令不连接微信、不打开真实浏览器或用户文库，并断言批处理换行和 Git 属性。
 - **错误与正确：**不能把 UTF-8 批处理的 LF 文件直接当作双击可用的 Windows 入口，也不能只校验文本内容；应保持 CRLF 并在真实命令解释器中核对执行分支和退出码。
@@ -26,15 +26,16 @@
 
 - `npm run desktop`：开发窗口，需要先build及准备随包Node。
 - `npm run desktop:package`：在Windows x64构建并生成便携目录。
+- `npm run desktop:installer`：构建后以Inno Setup 7.1.0包装EXE安装器，编译器路径可用`ISCC`指定，详见[发布检查](publishing.md)。
 - `npm run test:desktop`：运行真实exe，在隔离文库验收，不请求微信。
 - `拾页.exe --library-root=<绝对目录> --user-data-dir=<绝对目录>`：可选本机启动参数；配置文库后记住位置。
 - 内部Node IPC：`{type:'ready',port}`、`{type:'shutdown'}`；没有公开HTTP关闭接口。
 
 ## 3. 契约
 
-新用户默认`app.getPath('userData')/library`，数据库和封面在`data`，正文图默认`pictures/公众号名/文章标题`。软件升级只换程序目录，勿删除文库。图片位置可在设置更改，默认不迁移，显式迁移仍沿用原契约。配置文件`library.json`只保存文库根，不保存微信会话。
+新桌面用户默认`dirname(process.execPath)/library`，数据库和封面在`library/data`，正文图默认`library/pictures/公众号名/文章标题`。显式参数与有效旧绑定优先，不自动迁移。默认目录不可写时明确选择位置或退出，不静默改用AppData；坏绑定仍须选择已有文库。源码模式默认项目根。图片位置可在设置更改，默认不迁移，显式迁移仍沿用原契约。配置文件`library.json`只保存文库根，不保存微信会话。
 
-已有文库可通过`--library-root`传入其绝对路径进行绑定，成功打开后记住位置；未指定时按新用户默认位置创建文库。此参数没有作者机器路径的硬编码。读取4387的health标识和settings.dataDirectory都匹配才复用；否则在随机回环端口启动自有子服务。Web与桌面在打开数据库前取得`data/.shiye-service.lock`；活进程或未知锁拒绝。异常退出遗留的锁不自动删除，以免多个恢复进程误删对方的新锁；提示用户确认所有拾页进程退出后再清理这个锁文件。正常退出释放自有锁/服务，父进程失联也关闭子服务。
+已有文库可通过`--library-root`传入其绝对路径进行绑定，成功打开后记住位置；未指定时按新用户默认位置创建文库。此参数没有作者机器路径的硬编码。读取4387的health标识和settings.dataDirectory都匹配才复用；否则在随机回环端口启动自有子服务。Windows在SQLite开库前同时取得规范文库路径对应的系统命名管道与`data/.shiye-service.lock`。管道随进程退出释放；锁保留兼容性和异常记录。仅合法死进程锁提供原生“恢复并打开”，复核原内容后保留旧锁记录再原子取得新锁；活进程、未知或未完成文库保持拒绝。正常退出释放自有锁/服务，父进程失联也关闭子服务。
 
 打包固定Electron45.0.0、Node24.22.1、packager20.3.0。Node从[官方发行站](https://nodejs.org/dist/v24.22.1/)取得并核对SHA256，许可证来自官方源码tag。SQLite在随包Node下进行内存建表/写读检查；不使用Electron ABI加载现有Node模块。原生ABI边界见[Electron文档](https://www.electronjs.org/docs/latest/tutorial/using-native-node-modules)。
 
@@ -87,9 +88,9 @@ renderer开启sandbox/contextIsolation，关闭nodeIntegration，拒绝权限和
 
 ## 异常启动恢复
 
-同库锁在SQLite开库前检查。`LibraryStartupError.code`限定为`library_in_use`、`library_lock_unknown`、`library_lock_stale`、`library_incomplete`，sidecar仅沿既有error消息传递类别与安全提示。主进程按类别显示原生恢复引导，允许打开已绑定文库目录、重新检查或退出；重试须先等待失败的自有sidecar退出，不添加renderer文件权限。
+同库锁在SQLite开库前检查。`acquireLibraryLock(dataDir, {recoverClaim?})`返回异步释放函数。`LibraryStartupError.code`限定为`library_in_use`、`library_lock_unknown`、`library_lock_stale`、`library_incomplete`；只有Windows合法死进程锁可携带有界`recoveryClaim`原始内容。sidecar沿既有error IPC传递，主进程明确选择后仅下一次fork以`--recover-lock=<claim>`传入，不持久化票据或添加HTTP解锁。重试先等待失败的自有sidecar退出，不添加renderer文件权限。
 
-活跃进程不删除锁，未知锁不猜测，遗留锁展示确认退出所有拾页后处理的步骤，未完成恢复不能通过重试删除标记。普通缺程序文件错误仍显示原启动错误；不能把任意包含“锁”的异常误当可恢复类别。隔离原生烟测覆盖四类错误、打开目录、重复检查、退出与锁/数据库/标记原样保留。
+活跃进程不删除锁，未知锁不猜测；未完成恢复不能通过重试删除标记。恢复须在同一系统互斥范围内复核精确原内容与PID状态，锁已变化时须重新选择，不追随新锁。新锁先完整写入临时文件并同步，再硬链接无覆盖发布；文件系统不支持时明确失败，不能用覆盖式rename替代。非Windows保留保守锁行为，不提供此恢复。普通缺程序文件错误仍显示原启动错误，不能把任意包含“锁”的异常误当可恢复类别。
 
 桌面sidecar端口每次由系统分配，阅读位置通过本库API持久化，不能把同一origin刷新验证冒充跨应用重启验证。实际程序烟测在前后两次服务origin下读取相同文章两视图位置。
 
@@ -154,7 +155,8 @@ renderer开启sandbox/contextIsolation，关闭nodeIntegration，拒绝权限和
 | 自有ready服务退出 | 原生等待明确重开或退出，无自动fork |
 | 维护、退出、旧child或重复事件 | 不创建重复恢复流程 |
 | 重开失败或页面加载期间再次退出 | 再次等待明确选择，清理暂态反馈 |
-| 遗留、未知、活跃锁/未完成文库 | 沿既有分类引导，原件保持 |
+| 合法死进程锁 | 明确选择后复核并归档旧锁，再取得新锁 |
+| 未知、活跃锁/未完成文库 | 保持原件，拒绝强行打开 |
 | 选择退出或晚到响应 | 正常退出，晚到响应不能重开新服务 |
 
 ### 5. 用例
@@ -163,8 +165,36 @@ renderer开启sandbox/contextIsolation，关闭nodeIntegration，拒绝权限和
 
 ### 6. 测试
 
-`test/desktop-library.test.ts`覆盖互斥和失败时序；`scripts/desktop-recovery-smoke.mjs`用隔离portable实际child验证明确选择、单窗、阅读位置/暂停任务和账号断开，以及强制退出后锁/数据库/图片不变。原生对话返回由测试替身控制，不操作用户文库。
+`test/desktop-library.test.ts`覆盖互斥和失败时序；`scripts/desktop-recovery-smoke.mjs`用隔离portable实际child验证明确选择、单窗、阅读位置/暂停任务和账号断开。强制退出后、用户选择前原件保持；明确恢复后保留旧锁记录及文章、图片和阅读位置，正常退出释放新锁。原生对话返回由测试替身控制，不操作用户文库。
 
 ### 7. 错误与正确
 
 错误：任意服务退出后自动重启、解锁并继续采集。正确：只处理自己持有的服务，明确点击后重开当前根，锁与采集仍遵守既有规则。
+
+## 安装与数据保留
+
+### 1. 范围与触发
+Windows x64用户级中文安装器包装现有portable，不改变后端和SQLite ABI，也不迁移已有文库。
+
+### 2. 签名
+`node scripts/package-installer.mjs`使用最近成功的打包报告；`ISCC`指定Inno Setup 7.1.0编译器。`npm run desktop:installer`先构建portable再编译。重复版本目标存在时拒绝覆盖，避免改写正在使用的程序。
+
+### 3. 契约
+固定AppId为`Shiye.Desktop`，默认安装在`{localappdata}/Programs/Shiye`，不请求管理员权限。开始菜单快捷方式指向安装目录的`拾页.exe`，桌面快捷方式可选。安装器只登记程序清单，升级和卸载均保留软件旁的`library`、外部图片根和陌生文件；不递归删除安装根。安装和卸载前检查该目录的应用及Node进程，在用或无法确认时拒绝，不强制终止。
+
+### 4. 校验与错误矩阵
+| 情况 | 结果 |
+|---|---|
+| 安装目录中的程序运行中 | 拒绝升级或卸载，服务继续运行 |
+| payload含文库、数据库、绑定或目录链接 | 编译前拒绝 |
+| 工具版本、打包报告或版本不匹配 | 编译前拒绝 |
+| 升级/卸载/重装 | 程序由安装清单管理，已有用户数据保留 |
+
+### 5. 用例
+首次安装后从快捷方式打开，在程序旁建立文库；正常退出后覆盖升级继续读原库。卸载后文库仍在，重装可再次读取。ZIP用户须完整解压，不能只移动程序exe。
+
+### 6. 测试
+`test/installer.test.ts`覆盖身份隔离与分发清单，`scripts/installer-smoke.mjs`以独立Test AppId、快捷方式、profile和中文目录实际安装、升级、卸载和重装，核对数据库、本地及外部图片和陌生文件摘要，并通过HTTP读取图片。实际新用户启动不传`--library-root`，必须返回软件旁的默认data/pictures位置。
+
+### 7. 错误与正确
+错误：卸载时递归删除整个安装目录，或测试安装复用生产AppId。正确：只删除安装器登记的程序文件；验收使用独立身份和临时文库。

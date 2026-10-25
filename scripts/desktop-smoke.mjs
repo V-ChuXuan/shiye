@@ -250,7 +250,7 @@ require(${JSON.stringify(packagedMain)});`);
     await writeFile(join(recoveryData, '.shiye-service.lock'), lock);
     if (kind === 'incomplete') await writeFile(join(recoveryLibrary, '.shiye-incomplete'), 'restoring');
     const recoveryFile = join(fixture, `${kind}-guidance.json`), bootstrap = join(fixture, `guidance-${kind}.cjs`);
-    await writeFile(bootstrap, `const electron=require('electron'),fs=require('node:fs');const report={messages:[],folders:[],errors:[]},responses=${JSON.stringify(kind === 'stale' ? [0, 1, 2] : [2])};const save=()=>fs.writeFileSync(${JSON.stringify(recoveryFile)},JSON.stringify(report));electron.dialog.showMessageBox=async(...args)=>{report.messages.push(args.at(-1));save();return {response:responses.shift()??2}};electron.shell.openPath=async path=>{report.folders.push(path);save();return ''};electron.dialog.showErrorBox=(title,message)=>{report.errors.push({title,message});save()};require(${JSON.stringify(join(root, 'desktop/main.cjs'))});`);
+    await writeFile(bootstrap, `const electron=require('electron'),fs=require('node:fs');const report={messages:[],folders:[],errors:[]},responses=${JSON.stringify(kind === 'stale' ? [1, 2] : [2])};const save=()=>fs.writeFileSync(${JSON.stringify(recoveryFile)},JSON.stringify(report));electron.dialog.showMessageBox=async(...args)=>{report.messages.push(args.at(-1));save();return {response:responses.shift()??2}};electron.shell.openPath=async path=>{report.folders.push(path);save();return ''};electron.dialog.showErrorBox=(title,message)=>{report.errors.push({title,message});save()};require(${JSON.stringify(join(root, 'desktop/main.cjs'))});`);
     const recovery = spawn(join(root, 'node_modules/electron/dist/electron.exe'), [bootstrap,
       `--user-data-dir=${join(fixture, `guidance-profile-${kind}`)}`, `--library-root=${recoveryLibrary}`], { windowsHide: true, stdio: 'ignore' });
     await new Promise((done, reject) => {
@@ -259,9 +259,9 @@ require(${JSON.stringify(packagedMain)});`);
       recovery.once('exit', code => { clearTimeout(timer); assert.equal(code, 0); done(); });
     });
     const guidance = JSON.parse(await readFile(recoveryFile, 'utf8'));
-    assert.equal(guidance.messages.length, kind === 'stale' ? 3 : 1);
+    assert.equal(guidance.messages.length, kind === 'stale' ? 2 : 1);
     assert.deepEqual(guidance.errors, [], 'Handled recovery exits without a second generic failure box.');
-    assert.deepEqual(guidance.messages[0].buttons, ['打开文库目录', '重试', '退出']);
+    assert.deepEqual(guidance.messages[0].buttons, kind === 'stale' ? ['恢复并打开', '打开文库目录', '退出'] : ['打开文库目录', '重试', '退出']);
     assert.deepEqual(guidance.folders, kind === 'stale' ? [recoveryData] : []);
     assert.deepEqual(await readFile(join(recoveryData, 'archive.sqlite')), untouched);
     assert.equal(await readFile(join(recoveryData, '.shiye-service.lock'), 'utf8'), lock);
@@ -273,7 +273,7 @@ require(${JSON.stringify(packagedMain)});`);
       assert.equal(await readFile(join(recoveryLibrary, '.shiye-incomplete'), 'utf8'), 'restoring');
     }
   }
-  checks.push('real sidecar typed startup guidance handles stale, live, unknown and incomplete libraries; retry rechecks and exit preserves lock and database');
+  checks.push('real sidecar typed startup guidance handles stale, live, unknown and incomplete libraries; opening the bound folder and exiting preserve lock and database');
   await writeFile(join(evidence, 'desktop-result.json'), JSON.stringify({ passed: true, checks, fixture, executable: report.executable }, null, 2));
   console.log(JSON.stringify({ passed: true, checks }));
 } catch (error) {

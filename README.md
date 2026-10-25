@@ -8,7 +8,7 @@
 <p align="center">先发现清单，再选择下载，让需要的图文留在本地文库。</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.1-245c49?style=flat" alt="版本 0.1.1">
+  <img src="https://img.shields.io/badge/version-0.1.2-245c49?style=flat" alt="版本 0.1.2">
   <img src="https://img.shields.io/badge/platform-Windows_x64-245c49?style=flat" alt="Windows x64">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-245c49?style=flat" alt="MIT 许可"></a>
 </p>
@@ -28,7 +28,9 @@
 
 ## 安装
 
-从 [发布页](https://github.com/V-ChuXuan/shiye/releases/latest) 下载 Windows x64 ZIP，完整解压后打开 `拾页.exe`。保留旁边的文件和文件夹，无需单独安装 Node.js。
+从 [发布页](https://github.com/V-ChuXuan/shiye/releases/latest) 下载 Windows x64 安装程序，按提示安装即可使用。也可下载 ZIP，完整解压后打开 `拾页.exe`。无需单独安装 Node.js。
+
+新文库默认保存在软件目录的 `library` 文件夹，图片在 `library/pictures`。升级和卸载保留文库，已有用户继续使用原来的位置。
 
 ## 快速开始
 
@@ -57,7 +59,7 @@
 ## 什么时候不该用
 
 - 采集依赖 Windows 电脑微信及其非公开清单接口，不保证完整历史或无人值守运行。
-- 当前是未签名的 Windows x64 便携应用，没有安装器或自动更新。
+- 当前仅支持 Windows x64，程序尚未签名，不支持自动更新。
 - 保存的文章和图片仍属于各自作者，MIT 协议适用于软件。[其他已知限制](docs/usage.md#已知限制)见使用指南。
 
 ## 开发

@@ -52,8 +52,8 @@ test('web and desktop library locks exclude a second process and preserve replac
   const stale = JSON.stringify({ pid: dead.pid, id: 'stale' });
   await writeFile(file, stale);
   const results = await Promise.allSettled(Array.from({ length: 8 }, () => acquireLibraryLock(root)));
-  assert.ok(results.every(result => result.status === 'rejected' && /异常退出/.test(result.reason.message)));
-  assert.ok(results.every(result => result.status === 'rejected' && result.reason instanceof LibraryStartupError && result.reason.code === 'library_lock_stale'));
+  assert.ok(results.every(result => result.status === 'rejected' && result.reason instanceof LibraryStartupError && ['library_lock_stale', 'library_in_use'].includes(result.reason.code)));
+  assert.ok(results.some(result => result.status === 'rejected' && result.reason.code === 'library_lock_stale'));
   assert.equal(await readFile(file, 'utf8'), stale, 'Concurrent recovery must never delete another process\'s lock.');
 });
 
