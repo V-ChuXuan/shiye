@@ -1,84 +1,84 @@
 <p align="center">
-  <img src="client/public/brand/shiye-mark.png" width="120" alt="Shiye logo">
+  <img src="client/public/brand/shiye-mark.png" width="120" alt="拾页图标">
 </p>
 
 <h1 align="center">拾页 · Shiye</h1>
 
-<p align="center">Save selected WeChat public-account articles and read them offline on Windows.</p>
-<p align="center">Discover the list, choose what to download, and keep text and images in your local library.</p>
+<p align="center">在 Windows 上保存选定的公众号文章，离线阅读正文和图片。</p>
+<p align="center">先发现清单，再选择下载，让需要的图文留在本地文库。</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.1-245c49?style=flat" alt="Version 0.1.1">
+  <img src="https://img.shields.io/badge/version-0.1.1-245c49?style=flat" alt="版本 0.1.1">
   <img src="https://img.shields.io/badge/platform-Windows_x64-245c49?style=flat" alt="Windows x64">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-245c49?style=flat" alt="MIT License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-245c49?style=flat" alt="MIT 许可"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/V-ChuXuan/shiye/releases/latest">Download</a> ·
-  <a href="#quick-start">Quick Start</a> ·
-  <a href="docs/usage.md">Guide</a> ·
-  <a href="README.zh-CN.md">简体中文</a>
+  <a href="https://github.com/V-ChuXuan/shiye/releases/latest">下载应用</a> ·
+  <a href="#快速开始">快速开始</a> ·
+  <a href="docs/usage.md">使用指南</a> ·
+  <a href="README.en.md">English</a>
 </p>
 
-## Demo
+## 演示
 
-![Reading room with local test articles and account filtering](docs/images/reading-room.png)
+![使用本地测试文章和公众号筛选的阅读室](docs/images/reading-room.png)
 
-The interface is currently in Chinese. The screenshot uses a test library.
+当前界面为中文，截图来自测试文库。
 
-## Install
+## 安装
 
-Download the Windows x64 ZIP from [Releases](https://github.com/V-ChuXuan/shiye/releases/latest), extract the complete folder and open `拾页.exe`. Keep the adjacent files and folders; no separate Node.js installation is needed.
+从 [发布页](https://github.com/V-ChuXuan/shiye/releases/latest) 下载 Windows x64 ZIP，完整解压后打开 `拾页.exe`。保留旁边的文件和文件夹，无需单独安装 Node.js。
 
-## Quick Start
+## 快速开始
 
-1. Open Shiye and paste a public article link to add its account.
-2. Open an article from that account in desktop WeChat, then click **连接微信** in Shiye.
-3. Click **发现文章** to get the list and set this run's article and batch limits.
-4. Select articles in **文章目录** and download them. Discovery does not download articles automatically.
-5. Open **阅读室** to read saved text and images. Enlarged images stay in the same window.
+1. 打开拾页，粘贴一篇公开文章链接，添加公众号。
+2. 在电脑微信打开该公众号的一篇文章，再到拾页点击 **连接微信**。
+3. 点击 **发现文章** 获取清单，设置本次篇数和批次上限。
+4. 在 **文章目录** 选择文章并下载。发现文章不会自动下载正文。
+5. 到 **阅读室** 阅读已保存的图文，放大图片也在当前窗口查看。
 
-Closing the window hides it to the tray. Choose **退出拾页** in the tray menu to quit.
+关闭窗口会隐藏到托盘。在托盘菜单选择 **退出拾页** 即可退出。
 
-## Features
+## 功能
 
-- Discover history and new articles, then download only the articles you choose.
-- Keep task progress after interruptions and continue when ready.
-- Read article text and galleries offline, with adjustable columns and saved reading positions.
-- Save images in account-name/article-title folders and choose their location in Settings.
-- Back up and restore the complete library through the native application menu.
+- 发现历史和新增文章，选择需要的内容下载。
+- 中断后保留任务进度，准备好后继续。
+- 离线阅读正文和图集，调整阅读分栏，记住阅读位置。
+- 按公众号名和文章标题保存图片，在设置中选择保存位置。
+- 通过原生应用菜单备份和恢复完整文库。
 
-## Usage
+## 用法
 
-Change the image folder in **设置**. Existing images stay readable at their original location unless you select **同时迁移已有图片**. For backups, use the tray or Alt application menu and keep the whole backup folder.
+在 **设置** 更改图片目录。已有图片仍从原位置读取，勾选 **同时迁移已有图片** 才会迁移。备份通过托盘或 Alt 应用菜单操作，请保留整个备份文件夹。
 
-If WeChat requests verification or the connection expires, handle it in WeChat, reconnect and explicitly continue the task. Detailed discovery limits, selection behavior and recovery steps are in the [guide](docs/usage.md).
+微信要求验证或连接过期时，在微信处理后重新连接，再明确继续任务。发现上限、选择规则和恢复操作详见[使用指南](docs/usage.md)。
 
-## Limitations
+## 什么时候不该用
 
-- Collection depends on Windows desktop WeChat and its non-public listing interface. Complete history and unattended operation are not guaranteed.
-- This is an unsigned Windows x64 portable application, without an installer or automatic updates.
-- Saved articles and images retain their authors' rights; MIT applies to the software. See [further limitations](docs/usage.md#已知限制).
+- 采集依赖 Windows 电脑微信及其非公开清单接口，不保证完整历史或无人值守运行。
+- 当前是未签名的 Windows x64 便携应用，没有安装器或自动更新。
+- 保存的文章和图片仍属于各自作者，MIT 协议适用于软件。[其他已知限制](docs/usage.md#已知限制)见使用指南。
 
-## Development
+## 开发
 
-Build from source on Windows x64 with Node.js 24 LTS:
+从源码构建需要 Windows x64 和 Node.js 24 LTS：
 
 ```sh
 npm ci
 npm run desktop:package
 ```
 
-See [development and configuration](docs/usage.md#source-development), [desktop behavior](docs/desktop.md), [UI sources](docs/ui-foundation.md) and the [publication checklist](docs/publishing.md). Verification commands and known reliability limits are documented there.
+详见[开发与配置](docs/usage.md#源码开发)、[桌面行为](docs/desktop.md)、[UI 来源](docs/ui-foundation.md)及[发布检查](docs/publishing.md)，其中列有验证命令和已知可靠性限制。
 
-## License
+## 许可
 
 [MIT](LICENSE)
 
-## Credits
+## 致谢
 
-- [shadcn/ui](https://github.com/shadcn-ui/ui) and [Base UI](https://github.com/mui/base-ui) provide the component source and interaction primitives.
-- [Lucide](https://github.com/lucide-icons/lucide) provides the interface icons.
-- [Electron](https://github.com/electron/electron) hosts the desktop application. See [third-party notices](THIRD_PARTY_NOTICES.md) for the full attribution details.
+- [shadcn/ui](https://github.com/shadcn-ui/ui) 和 [Base UI](https://github.com/mui/base-ui) 提供组件源码与交互基础。
+- [Lucide](https://github.com/lucide-icons/lucide) 提供界面图标。
+- [Electron](https://github.com/electron/electron) 承载桌面应用，完整来源说明见[第三方声明](THIRD_PARTY_NOTICES.md)。
 
-<p align="center"><sub>If Shiye is useful to you, a ⭐ helps others find it.</sub></p>
+<p align="center"><sub>如果拾页对你有帮助，欢迎点亮 ⭐，让更多人发现它。</sub></p>

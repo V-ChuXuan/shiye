@@ -1,6 +1,6 @@
 # 使用指南
 
-首次使用步骤和下载入口见 [README](../README.zh-CN.md)。当前界面为中文；本页补充日常操作与源码开发说明。
+首次使用步骤和下载入口见 [README](../README.md)。当前界面为中文；本页补充日常操作与源码开发说明。
 
 ## 发现与下载
 
@@ -30,7 +30,7 @@
 
 偶发 SQLite 临时文件变化可能让备份或恢复安全中止，创建进程尚未归因。受控容量与中断演练不能证明真实断电安全、大图吞吐或长期微信兼容性，具体范围见[可靠性演练](reliability-drills.md)。
 
-## Source development
+## 源码开发
 
 需要 Windows x64 和 Node.js 24 LTS。后端采用 TypeScript、Fastify 和 SQLite，前端使用 React/Vite。Electron 承载界面，随包的独立 Node 进程管理 SQLite。
 
