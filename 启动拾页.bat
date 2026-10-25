@@ -2,6 +2,13 @@
 setlocal
 chcp 65001 >nul
 cd /d "%~dp0"
+if errorlevel 1 goto failed
+if exist "release\拾页-win32-x64\拾页.exe" (
+  start "" "%~dp0release\拾页-win32-x64\拾页.exe"
+  if errorlevel 1 goto failed
+  exit /b 0
+)
+echo 未找到桌面程序，正在使用源码浏览器模式。
 where node >nul 2>nul
 if errorlevel 1 (
   echo 请先安装 Node.js 24 LTS，然后重新打开。
