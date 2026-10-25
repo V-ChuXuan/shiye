@@ -1,0 +1,36 @@
+# Dependencies, build output and local libraries
+node_modules/
+dist/
+data/
+pictures/
+release/
+coverage/
+.omx/
+*.log
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+!.env.sample
+*.key
+*.pem
+*.p12
+*.pfx
+credentials*
+/library.json
+/window.json
+
+# Local databases and backups
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.bak
+*.backup
+backups/
+backup/
+
+# Workspace-only agent instructions
+/AGENTS.md
+/CLAUDE.md

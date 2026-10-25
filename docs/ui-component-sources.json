@@ -1,0 +1,80 @@
+{
+  "style": "base-nova",
+  "iconLibrary": "lucide",
+  "changes": [
+    "registry imports localized",
+    "IconPlaceholder replaced with Lucide",
+    "close label localized"
+  ],
+  "components": [
+    {
+      "name": "button",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/button.json",
+      "upstreamSha256": "313353436d0fcc8e44ab470adb614b9fd013d28626f624328ea0d66d41a6c81b"
+    },
+    {
+      "name": "input",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/input.json",
+      "upstreamSha256": "dab990dfefa0ba78854ab6602ad074270dba9d7d1262184d9bfbb62bd990903b"
+    },
+    {
+      "name": "dialog",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/dialog.json",
+      "upstreamSha256": "5be79d2cf2d2152a29d9f14c8e209ad57b696e9dfbf0b9cdf4523a7c710c8d02"
+    },
+    {
+      "name": "badge",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/badge.json",
+      "upstreamSha256": "d9fb280e266119c4b62a4c518e63152de27b094c68d3e5f8929d05bfb0c1bc6c"
+    },
+    {
+      "name": "table",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/table.json",
+      "upstreamSha256": "749b0501e97591f8d7c9ef81366d636e4b47857a15a28e6cf3b87841232e74bf"
+    },
+    {
+      "name": "skeleton",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/skeleton.json",
+      "upstreamSha256": "4c2af7fa9c645358a0fb188779deab6f0b981733b62befc25e18aaebea1350dc"
+    },
+    {
+      "name": "checkbox",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/checkbox.json",
+      "upstreamSha256": "0cc30ddee3fa93818799f48ad47a58a30652c956ce940373c3feb3559167f0af"
+    },
+    {
+      "name": "progress",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/progress.json",
+      "upstreamSha256": "2c104695a495968e9ee426039e291abc4fb2ff32f36b5faa4e8b450c2a4cc14c"
+    },
+    {
+      "name": "tabs",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/tabs.json",
+      "upstreamSha256": "958b817b256cffae986d046168b70dd0153d542b4c521ee8bbdda349010011ef"
+    },
+    {
+      "name": "resizable",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/resizable.json",
+      "upstreamSha256": "c45c4e1a32aefb83d60406366e2368b9d8a6e772406f8b964154e7202d6304f7"
+    },
+    {
+      "name": "alert",
+      "url": "https://ui.shadcn.com/r/styles/base-nova/alert.json",
+      "upstreamSha256": "f253568242c1c69b343f12474002fdbe229f603158171c59e21c491ab79f2e6e"
+    }
+  ],
+  "localComponents": [
+    {
+      "name": "select-control",
+      "basis": "@base-ui/react/select",
+      "documentation": "https://base-ui.com/react/components/select",
+      "maintainedLocally": true
+    },
+    {
+      "name": "date-picker",
+      "basis": "@base-ui/react/popover and tested local date-only grid",
+      "documentation": "https://base-ui.com/react/components/popover",
+      "maintainedLocally": true
+    }
+  ]
+}
